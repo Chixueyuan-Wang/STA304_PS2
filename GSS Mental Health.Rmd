@@ -1,0 +1,218 @@
+---
+title: "Factors Influencing Self Rated Mental Health of Females based on Canadian Social Survey 2017 "
+author: "Siyuan Shen 1002986968 Chixueyuan Wang 1003118538"
+date: "10/15/2020"
+output: 
+  bookdown::pdf_document2:
+  number_sections: TRUE
+  fig_caption: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("F:/desk/FALL 2020/sta304/A2")
+library("tidyverse")
+library("data.table")
+library("car")
+library("broom")
+gss<- fread("gss.csv") 
+
+gss_filtr<- gss%>%  filter(marital_status != "NA")%>%
+  
+  
+  filter(education!="NA")%>%
+  filter(religion_participation!="NA")%>%
+  filter(self_rated_mental_health!=c("Don't know","NA"))%>%
+  
+  filter(sex=="Female")%>%
+  select(marital_status,income_respondent,
+         -sex,
+         living_arrangement,
+         education,
+         
+         region,
+         religion_participation,
+         
+         age,
+         self_rated_mental_health,
+         
+         children_in_household)%>% 
+  mutate(marital_status=as.factor(marital_status),
+         
+         religion_participation=as.factor(religion_participation),
+         
+         self_rated_mental_health= ifelse(self_rated_mental_health=="Excellent","Good",
+                                          ifelse(self_rated_mental_health=="Very good","Good",
+                                                 ifelse(self_rated_mental_health=="Fair","Not Good",
+                                                        ifelse(self_rated_mental_health=="Poor","Not Good","Good")))),
+         
+         education=  as.factor(education),
+         region=as.factor(region),
+         self_rated_mental_health=factor(self_rated_mental_health,
+                                         levels = c("Not Good","Good"),ordered = T))%>%
+  # filter(age>=60)%>%select(-age)%>%
+  # hv_children = as.factor(ifelse(total_children>0,"yes","no")))%>%
+  #select(-total_children)%>%
+  na.omit()
+
+
+
+
+
+```
+
+# Abstract
+
+The research is an attempt to identify the predictors related to self mental health of females using the data collected during the Canadian Social Survey of 2017. A logistic regression model for the prediction of self mental health of females was made. Initially, marital status, respondents income, living arrangement, education, children in household, region, religion participation, and age were considered in model building. Out of these only children in household was not proved to be a significant predictor. Marital status and children in household were considered to be significant at 10% level of significance while others were less than 5%.
+
+# Introduction
+
+In 1985, Canada first launched its General Social Survey (GSS) Program. The following survey, is conducted after every 5-years and has two primary objectives i.e. to gather data on social trends and to collect information regarding specific social policy issues of current and emerging interest in order to address and make reforms in policies such as child care, health and support programs.
+
+  In 2017, last GSS was conducted. The target population were non-institutionalized people of 15 years or older. A response rate of 52.4% was observed. Using this data, we have studied the features and determined a classification model regarding self rated mental health of females. The analysis was done with the help of R-language using "tidyverse", "broom", "car" and "data.table" packages (Wickham et al., (2019)., David Robinson, Alex Hayes and Simon Couch (2020)., John Fox and Sanford Weisberg (2019). and  Matt Dowle and Arun Srinivasan (2019).).
+  
+# Data
+Data collection for the reference period of Canadian General Social Survey was obtained during: 2017-02-01 to 2017-11-30, which comprised of population being non-institutionalized with age of 15 years and greater. All the 10 provinces of Canada were covered in the survey. Qustionnaire used was designed based on research by Canada's Questionnaire Design Resource Center (QDRC). Data was than collected from respondents directly through computer-assisted telephone interviewing method. For quality assurance, following validation measures were used:
+a) analysis of changes over time
+b) verification of estimates through cross-tabulations
+c) confrontation with other similar sources of data.
+
+The data is based on sample of persons, therefore, sampling error is to be expected and hence, the estimates will vary based on sample to sample.The overall response rate was 52.4% out of 43000 units of field sample.
+Households with non-availability of telephones were were excluded from the surveyed population. Therefore, the results may induce biasedness, however, these exclusions were small, so, the biasedness is small.
+
+Furthermore, there were two stages of information collection: household level and individual level. Non-responses were observed at both stages and were adjusted i.e. weighted, to account for the cases of non-response ("General social survey - Family (GSS)," 2019).
+
+# Model
+```{r mdl}
+model= glm( self_rated_mental_health~.-children_in_household, data = gss_filtr, family = "binomial")
+
+```
+To study the self rated mental health of females 9 variables were used to build a classification model (i.e. Logistic Regression Model): marital status, respondents income, living arrangement, education, children in household, region, religion participation, household type and age. Females mental health was classified as "Good" and "Not Good" based on their responses on self rated mental health. Missing values were dropped and females who were unsure about their mental health were not considered. The model has a logit link function in which "Not Good" is the reference category for response variable.
+
+# Results
+Considering the figures from 1 to 7, which display within groups difference of mental health proportion, we observe high proportion of females having a good mental health being married than being non married. Similarly, the proportion of females living alone have a high proportion not having a good mental health. The distribution of proportion for every appears to be different. Furthermore, females belonging to a higher age group appear to have better mental health than the ones being younger.
+
+```{r Plots,echo=FALSE,fig.dim=c(5,3),fig.align='center'}
+gss_filtr%>%
+  count(self_rated_mental_health, marital_status) %>% 
+  group_by(self_rated_mental_health) %>% 
+  mutate(Sum=sum(n)) %>% 
+  mutate(proportion = n/Sum)%>%
+  ggplot(aes(x=self_rated_mental_health,y=proportion,fill=marital_status))+
+  geom_col(position = "dodge")+labs(caption  = "Fig 1: Self Rated Mental Health of Females for different Marital Statuses")+
+   theme(plot.caption   = element_text(size=5))
+
+gss_filtr%>%
+  count(self_rated_mental_health, income_respondent) %>% 
+  group_by(self_rated_mental_health) %>% 
+  mutate(Sum=sum(n)) %>% 
+  mutate(proportion = n/Sum)%>%
+  ggplot(aes(x=self_rated_mental_health,y=proportion,fill=income_respondent))+
+  geom_col(position = "dodge")+labs(caption = "Fig 2: Self Rated Mental Health of Females for different Income Groups") +
+   theme(plot.caption   = element_text(size=5))
+
+gss_filtr%>%
+  count(self_rated_mental_health, living_arrangement) %>% 
+  group_by(self_rated_mental_health) %>% 
+  mutate(Sum=sum(n)) %>% 
+  mutate(proportion = n/Sum)%>%
+  ggplot(aes(x=self_rated_mental_health,y=proportion,fill=living_arrangement))+
+  geom_col(position = "dodge")+labs(caption = "Fig 3: Self Rated Mental Health of Females having diferent living_arrangements")+
+   theme(plot.caption   = element_text(size=5))+
+     theme(legend.text = element_text(size=5),
+           legend.title = element_text(size=5)  )
+
+
+gss_filtr%>%
+  count(self_rated_mental_health, education) %>% 
+  group_by(self_rated_mental_health) %>% 
+  mutate(Sum=sum(n)) %>% 
+  mutate(proportion = n/Sum)%>%
+  ggplot(aes(x=self_rated_mental_health,y=proportion,fill=education))+
+  geom_col(position = "dodge")+labs(caption = "Fig 4: Self Rated Mental Health of Females for different Education")+ 
+  theme(strip.text.x = element_text(size = 7))+
+   theme(plot.caption   = element_text(size=5))+
+     theme(legend.text = element_text(size=5),
+           legend.title = element_text(size=5)  )
+
+
+gss_filtr%>%
+  count(self_rated_mental_health, region) %>% 
+  group_by(self_rated_mental_health) %>% 
+  mutate(Sum=sum(n)) %>% 
+  mutate(proportion = n/Sum)%>%
+ggplot(aes(x=self_rated_mental_health,y=proportion,fill=region))+
+  geom_col(position = "dodge")+labs(caption = "Fig 5: Self Rated Mental Health of Females across Regions")+
+   theme(plot.caption   = element_text(size=5))
+
+
+
+gss_filtr%>%
+  count(self_rated_mental_health, religion_participation) %>% 
+  group_by(self_rated_mental_health) %>% 
+  mutate(Sum=sum(n)) %>% 
+  mutate(proportion = n/Sum)%>%
+  ggplot(aes(x=self_rated_mental_health,y=proportion,fill=religion_participation))+
+  geom_col(position = "dodge")+labs(caption = "Fig 6: Self Rated Mental Health of Females with respect to Religious Activities")+
+   theme(plot.caption   = element_text(size=5))
+
+
+
+ggplot(gss_filtr,aes(x=age,col=self_rated_mental_health))+
+  geom_histogram()+facet_wrap(~self_rated_mental_health)+labs(caption = "Fig 7: Self Rated Mental Health Distribution of Females age")+
+   theme(plot.caption   = element_text(size=5))
+```
+
+## Anova Table
+```{r Anova Table, echo=FALSE, }
+
+set.seed(100)
+
+
+model1= glm( self_rated_mental_health~., data = gss_filtr, family = "binomial")
+
+Anova(model1)
+
+
+```
+
+ANOVA table results indicate that children in household do not prove to be a significant contributor when classifying and explaining females mental health. All other predictors are significant at 5% level of significance.
+
+## Coefficient's Interpretation
+```{r Coefficients Table,echo=FALSE}
+
+print(tidy(model),n=42) 
+a_ic<-model$aic
+mdl<-model$model
+```
+The coefficients table show that all the predictors are significant at 5% level of significance. All the categorical variables used have at least one of the dummy variables significant so the variables will be considered as significant. The model AIC was computed to be `r a_ic`.
+
+### Intercept Inerpretation
+The interpretation for the intercept of our model is that the log odds of females mental health being "Good" to "Not Good" is estimated to be 1.83 for marital status being "Divorced", having income between $100,000 to $124,999, living "alone" in the "Atlantic" region, having a "Bachelor's degree" and participating in religious activities "at least 3 times a year".
+
+### Slope Coefficients Interpretation
+For the slope coefficients the log odds of females mental health being "Good" to "Not Good" is estimated to be either increase or decrease depending upon the sign of the coefficient.e.g. an increase in the log odds is expected to be 0.539 for the female living having a marital status of "Common-Law"  as compared to other "Divorced".provided that the marital status.
+
+# Discussions
+The study can be extended for the males and more indicators may be added to have a better understanding of the mental health. The study may be compared with that of previous years to see the changing trend. 
+
+# References
+1. General social survey - Family (GSS). (2019, February 6). https://www23.statcan.gc.ca/imdb/p2SV.pl?Function=getSurvey&SDDS=4501
+2. Wickham et al., (2019). Welcome to the tidyverse.
+  Journal of Open Source Software, 4(43), 1686,
+  https://doi.org/10.21105/joss.01686
+3. David Robinson, Alex Hayes and Simon Couch (2020).
+  broom: Convert Statistical Objects into Tidy Tibbles.
+  R package version 0.7.0.
+  https://CRAN.R-project.org/package=broom
+4. John Fox and Sanford Weisberg (2019). An {R} Companion
+  to Applied Regression, Third Edition. Thousand Oaks
+  CA: Sage. URL:
+  https://socialsciences.mcmaster.ca/jfox/Books/Companion
+5. Matt Dowle and Arun Srinivasan (2019). data.table:
+  Extension of `data.frame`. R package version 1.12.8.
+  https://CRAN.R-project.org/package=data.table
+
+# Appendix
+ The GitHub link is https://github.com/Chixueyuan-Wang/STA304_PS2
+ 
